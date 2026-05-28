@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Stack, Table } from '@phosphor-icons/react';
+import { Confetti, Stack, Table } from '@phosphor-icons/react';
 import { isAngryMode } from '../mood';
 import AccordionItem from './AccordionItem';
 import OrganizeTabs from './OrganizeTabs';
 import CaptureCollections from './CaptureCollections';
+import WrappedShowcase from './WrappedShowcase';
 
-type FeatureId = 'organize' | 'capture';
+type FeatureId = 'organize' | 'capture' | 'wrapped';
 
 /**
  * Contenido de la pestaña "Acciones": acordeón de features (apertura única).
@@ -42,6 +43,16 @@ export default function FeaturePanel({ mood }: { mood: number }) {
         onToggle={() => toggle('capture')}
       >
         <CaptureCollections />
+      </AccordionItem>
+      <AccordionItem
+        Icon={Confetti}
+        title="Tu Wrapped"
+        desc="Resumen al estilo Spotify"
+        open={open === 'wrapped'}
+        locked={locked}
+        onToggle={() => toggle('wrapped')}
+      >
+        <WrappedShowcase />
       </AccordionItem>
     </div>
   );

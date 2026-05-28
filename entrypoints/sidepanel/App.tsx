@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { moodBand } from './mood';
+import { useTrackedMood } from './lib/useTrackedMood';
 import Header from './components/Header';
 import PiquiStage from './components/PiquiStage';
 import Tabs, { type TabId } from './components/Tabs';
@@ -10,8 +11,8 @@ import ToastHost from './components/ToastHost';
 import MoodDevControl from './components/MoodDevControl';
 
 export default function App() {
-  // Hardcoded placeholders (manifest §8.4) — esperando lógica real.
-  const [mood, setMood] = useState(65);
+  // mood: trackeado en local:mood-segments para alimentar el Wrapped.
+  const [mood, setMood] = useTrackedMood(65);
   const [hunger, setHunger] = useState(40);
   const [tab, setTab] = useState<TabId>('actions');
 
