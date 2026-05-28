@@ -13,7 +13,7 @@ import MoodDevControl from './components/MoodDevControl';
 
 export default function App() {
   // Loop tamagotchi: mood+hunger persistentes con decay (alimenta el Wrapped vía bandas).
-  const { mood, hunger, setMood, setHunger, feed } = usePiquiVitals();
+  const { mood, hunger, setMood, setHunger, feed, paused, setPaused } = usePiquiVitals();
   const [tab, setTab] = useState<TabId>('actions');
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -35,7 +35,14 @@ export default function App() {
         )}
       </main>
       {/* dev-only — borrar para producción */}
-      <MoodDevControl mood={mood} hunger={hunger} onMood={setMood} onHunger={setHunger} />
+      <MoodDevControl
+        mood={mood}
+        hunger={hunger}
+        onMood={setMood}
+        onHunger={setHunger}
+        paused={paused}
+        onTogglePaused={() => setPaused(!paused)}
+      />
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <ToastHost />
     </div>

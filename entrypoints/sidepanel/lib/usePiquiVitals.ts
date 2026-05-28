@@ -29,6 +29,9 @@ export interface PiquiVitals {
   setMood: (n: number) => void;
   setHunger: (n: number) => void;
   feed: () => void;
+  /** true = el decay está congelado (dev "still"): no baja hambre ni ánimo. */
+  paused: boolean;
+  setPaused: (b: boolean) => void;
 }
 
 /**
@@ -39,9 +42,11 @@ export interface PiquiVitals {
 export function usePiquiVitals(): PiquiVitals {
   const [mood, setMoodState] = useState(DEMO_MOOD);
   const [hunger, setHungerState] = useState(DEMO_HUNGER);
+  const [paused, setPaused] = useState(false);
 
   const moodRef = useRef(mood);
   const hungerRef = useRef(hunger);
+  const pausedRef = useRef(paused);
   const loadedRef = useRef(false);
   const lastBandRef = useRef<MoodBand | null>(null);
 
@@ -51,6 +56,9 @@ export function usePiquiVitals(): PiquiVitals {
   useEffect(() => {
     hungerRef.current = hunger;
   }, [hunger]);
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
   // Persistir (recién cuando cargó, para no pisar el storage con los valores de mount).
   function persist(m: number, h: number) {
@@ -85,7 +93,7 @@ export function usePiquiVitals(): PiquiVitals {
   // Tick único: hambre decae; bajo el umbral arrastra el ánimo. Lee refs (no closures).
   useEffect(() => {
     const id = setInterval(() => {
-      if (!loadedRef.current) return;
+      if (!loadedRef.current || pausedRef.current) return; // "still": no decae
       const nextHunger = clamp(hungerRef.current - HUNGER_DECAY);
       let nextMood = moodRef.current;
       if (nextHunger < HUNGER_THRESHOLD) nextMood = clamp(nextMood - MOOD_DECAY);
@@ -114,5 +122,5 @@ export function usePiquiVitals(): PiquiVitals {
     persist(m, h);
   };
 
-  return { mood, hunger, setMood, setHunger, feed };
+  return { mood, hunger, setMood, setHunger, feed, paused, setPaused };
 }

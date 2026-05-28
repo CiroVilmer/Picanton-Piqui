@@ -8,17 +8,35 @@ export default function MoodDevControl({
   hunger,
   onMood,
   onHunger,
+  paused,
+  onTogglePaused,
 }: {
   mood: number;
   hunger: number;
   onMood: (n: number) => void;
   onHunger: (n: number) => void;
+  paused: boolean;
+  onTogglePaused: () => void;
 }) {
   return (
     <div className="mx-4 mb-2 flex shrink-0 flex-col gap-2 rounded-btn border border-dashed border-outline p-3">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-ink-muted">
-        dev · estados
-      </span>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-ink-muted">
+          dev · estados
+        </span>
+        <button
+          type="button"
+          onClick={onTogglePaused}
+          aria-pressed={paused}
+          className={`rounded-pill px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] transition-colors ${
+            paused
+              ? 'bg-mood-warm text-white'
+              : 'border border-outline text-ink-muted hover:text-ink'
+          }`}
+        >
+          {paused ? '⏸ still' : '▶ live'}
+        </button>
+      </div>
       <label className="flex items-center gap-2 text-[11px] font-semibold text-ink-muted">
         <span className="w-20 tabular-nums">Mood {mood}</span>
         <input
