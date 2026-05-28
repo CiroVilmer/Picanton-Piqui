@@ -337,20 +337,20 @@ function SlideContent({ slide }: { slide: WrappedSlide }) {
       return (
         <div className="my-auto flex flex-col items-center gap-3 text-center">
           <p
-            className="text-[11px] font-bold uppercase tracking-[0.35em] text-white/80"
+            className="text-[11px] font-bold uppercase tracking-[0.35em] text-white/85"
             style={{ animation: 'wrappedFadeUp 600ms ease-out 100ms both' }}
           >
-            fin
+            gracias por escuchar
           </p>
           <h2
-            className="text-4xl font-black leading-[0.95] tracking-tight"
-            style={{ animation: 'wrappedBig 700ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both' }}
+            className="text-5xl font-black leading-[0.9] tracking-tight"
+            style={{ animation: 'wrappedBig 700ms cubic-bezier(0.16, 1, 0.3, 1) 250ms both' }}
           >
             {slide.title}
           </h2>
           <p
             className="text-base font-medium italic text-white/90"
-            style={{ animation: 'wrappedFadeUp 600ms ease-out 600ms both' }}
+            style={{ animation: 'wrappedFadeUp 600ms ease-out 650ms both' }}
           >
             {slide.subtitle}
           </p>
