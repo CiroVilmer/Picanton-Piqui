@@ -1,11 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
-import { SpeakerHigh, SpeakerSlash, X } from '@phosphor-icons/react';
-
-const AUDIO_SRC = '/audio/wrapped.mp3';
-const AUDIO_VOLUME = 0.45;
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { CaretLeft, CaretRight, SpeakerHigh, SpeakerSlash, X } from '@phosphor-icons/react';
 import { buildWrappedSlides, type WrappedData, type WrappedSlide } from '../lib/wrapped';
 import type { Category } from '../lib/classifier';
 import type { MoodBand } from '../mood';
+
+const AUDIO_SRC = '/audio/wrapped.mp3';
+const AUDIO_VOLUME = 0.45;
+
+const PIQUI_CLIPS: ReadonlyArray<string> = [
+  '/animations/enojado_idle_1.mp4',
+  '/animations/idle_mate_completo.mp4',
+  '/animations/idle_phone.mp4',
+  '/animations/idle.mp4',
+];
+
+function pickPiquiClip(): string {
+  return PIQUI_CLIPS[Math.floor(Math.random() * PIQUI_CLIPS.length)]!;
+}
 
 type Props = {
   onClose: () => void;
@@ -260,15 +271,38 @@ function SlideStage({
         type="button"
         aria-label="Anterior"
         onClick={onPrev}
-        className="absolute inset-y-0 left-0 w-1/3 cursor-default"
-      />
+        className="group absolute inset-y-0 left-0 flex w-1/3 cursor-default items-center justify-start pl-2"
+      >
+        <span className="pointer-events-none flex size-9 items-center justify-center rounded-full bg-black/25 text-white opacity-40 backdrop-blur-sm transition group-hover:opacity-100">
+          <CaretLeft weight="bold" size={18} />
+        </span>
+      </button>
       <button
         type="button"
         aria-label="Siguiente"
         onClick={onNext}
-        className="absolute inset-y-0 right-0 w-2/3 cursor-default"
-      />
+        className="group absolute inset-y-0 right-0 flex w-2/3 cursor-default items-center justify-end pr-2"
+      >
+        <span className="pointer-events-none flex size-9 items-center justify-center rounded-full bg-black/25 text-white opacity-40 backdrop-blur-sm transition group-hover:opacity-100">
+          <CaretRight weight="bold" size={18} />
+        </span>
+      </button>
     </div>
+  );
+}
+
+function PiquiClip({ className = '' }: { className?: string }) {
+  const src = useMemo(() => pickPiquiClip(), []);
+  return (
+    <video
+      key={src}
+      src={src}
+      autoPlay
+      muted
+      loop
+      playsInline
+      className={`aspect-square rounded-full bg-white/15 object-cover shadow-[0_4px_18px_rgba(0,0,0,0.3)] ${className}`}
+    />
   );
 }
 
@@ -376,7 +410,13 @@ function SlideContent({ slide }: { slide: WrappedSlide }) {
             tu categoría top
           </p>
           <div
-            className="mt-auto flex flex-col gap-1"
+            className="my-auto flex justify-center"
+            style={{ animation: 'wrappedFadeUp 600ms ease-out 200ms both' }}
+          >
+            <PiquiClip className="w-28" />
+          </div>
+          <div
+            className="flex flex-col gap-1"
             style={{ animation: 'wrappedBig 700ms cubic-bezier(0.16, 1, 0.3, 1) 250ms both' }}
           >
             <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/70">
@@ -498,17 +538,23 @@ function BigStatLayout({
         {label}
       </p>
       <div
-        className="mt-auto flex flex-col gap-1"
-        style={{ animation: 'wrappedBig 800ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both' }}
+        className="my-auto flex justify-center"
+        style={{ animation: 'wrappedFadeUp 600ms ease-out 200ms both' }}
       >
-        <span className="text-[88px] font-black leading-[0.85] tracking-tighter">{big}</span>
+        <PiquiClip className="w-32" />
+      </div>
+      <div
+        className="flex flex-col gap-1"
+        style={{ animation: 'wrappedBig 800ms cubic-bezier(0.16, 1, 0.3, 1) 350ms both' }}
+      >
+        <span className="text-[72px] font-black leading-[0.85] tracking-tighter">{big}</span>
         {small && (
           <span className="text-sm font-semibold text-white/85">{small}</span>
         )}
       </div>
       <p
         className="mt-3 text-sm font-medium italic text-white/90"
-        style={{ animation: 'wrappedFadeUp 600ms ease-out 700ms both' }}
+        style={{ animation: 'wrappedFadeUp 600ms ease-out 800ms both' }}
       >
         {subtitle}
       </p>
