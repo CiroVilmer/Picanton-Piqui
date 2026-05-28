@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowRight,
   CheckCircle,
   Play,
+  SpeakerHigh,
+  SpeakerSlash,
   Trophy,
   X,
   XCircle,
@@ -21,6 +23,9 @@ type Props = {
 
 type Phase = 'intro' | 'playing' | 'results';
 
+const AUDIO_SRC = '/audio/kh10min.mp3';
+const AUDIO_VOLUME = 0.4;
+
 const KEYFRAMES = `
   @keyframes pregEnter {
     from { opacity: 0; transform: translateY(16px); }
@@ -38,6 +43,33 @@ export default function PreguntadosOverlay({ onClose }: Props) {
   const [index, setIndex] = useState(0);
   const [picked, setPicked] = useState<OptionLetter | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [audioAvailable, setAudioAvailable] = useState(true);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.volume = AUDIO_VOLUME;
+    audio.loop = true;
+    audio.play().catch((err) => {
+      console.debug('[piqui preguntados] audio autoplay blocked or src missing', err);
+    });
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+    };
+  }, []);
+
+  function toggleMute() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.muted = !audio.muted;
+    setMuted(audio.muted);
+    if (!audio.muted && audio.paused) {
+      audio.play().catch(() => undefined);
+    }
+  }
 
   const current = questions[index];
 
@@ -83,14 +115,33 @@ export default function PreguntadosOverlay({ onClose }: Props) {
       />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/55 via-black/15 to-black/65" />
 
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label="Cerrar"
-        className="absolute right-3 top-3 z-30 flex size-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition hover:bg-white/35"
-      >
-        <X weight="bold" size={16} />
-      </button>
+      <audio
+        ref={audioRef}
+        src={AUDIO_SRC}
+        preload="auto"
+        onError={() => setAudioAvailable(false)}
+      />
+
+      <div className="absolute right-3 top-3 z-30 flex items-center gap-1.5">
+        {audioAvailable && (
+          <button
+            type="button"
+            onClick={toggleMute}
+            aria-label={muted ? 'Activar audio' : 'Silenciar audio'}
+            className="flex size-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition hover:bg-white/35"
+          >
+            {muted ? <SpeakerSlash weight="bold" size={16} /> : <SpeakerHigh weight="bold" size={16} />}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          className="flex size-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition hover:bg-white/35"
+        >
+          <X weight="bold" size={16} />
+        </button>
+      </div>
 
       <div className="relative z-10 flex flex-1 flex-col">
         {phase === 'intro' && <IntroPhase onStart={start} />}
