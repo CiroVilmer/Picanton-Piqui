@@ -301,7 +301,7 @@ function PiquiClip({ className = '' }: { className?: string }) {
       muted
       loop
       playsInline
-      className={`aspect-square rounded-full bg-white/15 object-cover shadow-[0_4px_18px_rgba(0,0,0,0.3)] ${className}`}
+      className={`aspect-square rounded-card bg-white/15 object-cover shadow-[0_4px_18px_rgba(0,0,0,0.3)] ${className}`}
     />
   );
 }
