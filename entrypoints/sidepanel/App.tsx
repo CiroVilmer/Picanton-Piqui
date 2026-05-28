@@ -6,7 +6,6 @@ import PiquiStage from './components/PiquiStage';
 import Tabs, { type TabId } from './components/Tabs';
 import FeaturePanel from './components/FeaturePanel';
 import Chat from './components/Chat';
-import Footer from './components/Footer';
 import SettingsPanel from './components/SettingsPanel';
 import ToastHost from './components/ToastHost';
 import MoodDevControl from './components/MoodDevControl';
@@ -29,12 +28,11 @@ export default function App() {
         {tab === 'actions' ? (
           <FeaturePanel mood={mood} onOpenSettings={() => setSettingsOpen(true)} />
         ) : (
-          <Chat />
+          <Chat mood={mood} hunger={hunger} onOpenSettings={() => setSettingsOpen(true)} />
         )}
       </main>
       {/* dev-only — borrar para producción */}
       <MoodDevControl mood={mood} hunger={hunger} onMood={setMood} onHunger={setHunger} />
-      <Footer />
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <ToastHost />
     </div>

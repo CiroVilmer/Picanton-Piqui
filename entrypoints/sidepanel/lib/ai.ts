@@ -3,6 +3,13 @@ import { storage } from 'wxt/utils/storage';
 
 export const MODEL = 'gemini-3.1-pro-preview';
 
+/**
+ * Modelo del chat: flash-lite (GA) por baja latencia/costo — ideal para respuestas
+ * cortas con personalidad. Mismo family que MODEL, así que la key del user suele tenerlo.
+ * Fallback si no hay acceso: 'gemini-2.5-flash'.
+ */
+export const CHAT_MODEL = 'gemini-3.1-flash-lite';
+
 export const apiKey = storage.defineItem<string>('local:gemini-api-key', {
   fallback: '',
 });
@@ -22,6 +29,27 @@ export type GenerateError = 'no-key' | 'auth' | 'parse' | 'network' | 'empty' | 
 export type GenerateResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: GenerateError; message?: string };
+
+/** Turno de conversación para el chat (role en el formato de Gemini). */
+export type ChatTurn = { role: 'user' | 'model'; text: string };
+
+/** Clasifica un error de la API a un GenerateError según el mensaje. */
+function classifyError(err: unknown): { error: GenerateError; message: string } {
+  const message = err instanceof Error ? err.message : String(err);
+  const lower = message.toLowerCase();
+  if (
+    lower.includes('401') ||
+    lower.includes('403') ||
+    lower.includes('api key') ||
+    lower.includes('permission_denied')
+  ) {
+    return { error: 'auth', message };
+  }
+  if (lower.includes('fetch') || lower.includes('network') || lower.includes('failed to fetch')) {
+    return { error: 'network', message };
+  }
+  return { error: 'unknown', message };
+}
 
 export async function generateStructured<T>(
   systemPrompt: string,
@@ -71,14 +99,53 @@ export async function generateStructured<T>(
     }
   } catch (err) {
     console.error('generateStructured failed', err);
-    const message = err instanceof Error ? err.message : String(err);
-    const lower = message.toLowerCase();
-    if (lower.includes('401') || lower.includes('403') || lower.includes('api key') || lower.includes('permission_denied')) {
-      return { ok: false, error: 'auth', message };
+    const { error, message } = classifyError(err);
+    return { ok: false, error, message };
+  }
+}
+
+/**
+ * Genera texto en streaming (chat). Arma `contents` desde los turnos, pasa el
+ * system prompt como systemInstruction, y va llamando onChunk con cada delta.
+ * Devuelve el texto completo acumulado, o un error clasificado.
+ */
+export async function streamText(
+  systemPrompt: string,
+  turns: ChatTurn[],
+  onChunk: (delta: string) => void,
+  temperature: number = 0.9,
+): Promise<GenerateResult<string>> {
+  const ai = await getAiClient();
+  if (!ai) return { ok: false, error: 'no-key' };
+
+  try {
+    const contents = turns.map((t) => ({ role: t.role, parts: [{ text: t.text }] }));
+    const stream = await ai.models.generateContentStream({
+      model: CHAT_MODEL,
+      contents,
+      config: {
+        systemInstruction: systemPrompt,
+        temperature,
+        maxOutputTokens: 1024,
+      },
+    });
+
+    let full = '';
+    for await (const chunk of stream) {
+      const delta = chunk.text; // string | undefined
+      if (delta) {
+        full += delta;
+        onChunk(delta);
+      }
     }
-    if (lower.includes('fetch') || lower.includes('network') || lower.includes('failed to fetch')) {
-      return { ok: false, error: 'network', message };
+
+    if (full.length === 0) {
+      return { ok: false, error: 'empty', message: 'El modelo no devolvió texto.' };
     }
-    return { ok: false, error: 'unknown', message };
+    return { ok: true, data: full };
+  } catch (err) {
+    console.error('streamText failed', err);
+    const { error, message } = classifyError(err);
+    return { ok: false, error, message };
   }
 }
