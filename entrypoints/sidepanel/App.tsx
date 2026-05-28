@@ -1,18 +1,23 @@
 import { useState } from 'react';
 import { AnalyzeButton } from './components/AnalyzeButton';
 import { ApplyGroupingButton } from './components/ApplyGroupingButton';
+import { CollectionsCard } from './components/CollectionsCard';
 import { GroupedTabsCard } from './components/GroupedTabsCard';
+import { SavePageSection } from './components/SavePageSection';
 import { SessionList } from './components/SessionList';
 import { ToastHost } from './components/ToastHost';
 import { UngroupAllButton } from './components/UngroupAllButton';
 import { analyzeTabs, type Analysis } from './lib/classifier';
 import { pushToast } from './lib/toast';
+import { useActiveTabScrappable } from './lib/useActiveTabScrappable';
 import { useTabCount } from './lib/useTabCount';
 
 export default function App() {
   const tabCount = useTabCount();
+  const active = useActiveTabScrappable();
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [loading, setLoading] = useState(false);
+  const [savePageOpen, setSavePageOpen] = useState(false);
 
   const onAnalyze = async () => {
     if (loading) return;
@@ -31,19 +36,46 @@ export default function App() {
     }
   };
 
+  const onToggleSavePage = () => {
+    if (!savePageOpen && !active.scrappable) {
+      pushToast('Esta página no se puede leer (URL interna).');
+      return;
+    }
+    setSavePageOpen((v) => !v);
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 antialiased">
       <header className="sticky top-0 z-10 border-b border-zinc-900/80 bg-zinc-950/80 px-5 py-4 backdrop-blur">
-        <div className="flex items-center gap-2">
-          <span className="size-1.5 rounded-full bg-amber-400" />
-          <h1 className="text-base font-semibold tracking-tight text-zinc-50">Piqui</h1>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="size-1.5 rounded-full bg-amber-400" />
+              <h1 className="text-base font-semibold tracking-tight text-zinc-50">Piqui</h1>
+            </div>
+            <p className="mt-1 text-xs italic text-zinc-500">
+              Tu mascota de Chrome con onda.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onToggleSavePage}
+            disabled={!active.scrappable && !savePageOpen}
+            title={
+              active.scrappable
+                ? 'Guardar esta página en una lista'
+                : 'Esta página no se puede leer (URL interna)'
+            }
+            className="rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-[11px] font-medium text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-800 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {savePageOpen ? '✕' : '＋ Guardar página'}
+          </button>
         </div>
-        <p className="mt-1 text-xs italic text-zinc-500">
-          Tu mascota de Chrome con onda.
-        </p>
       </header>
 
       <main className="space-y-5 p-5 pb-16">
+        {savePageOpen && <SavePageSection onClose={() => setSavePageOpen(false)} />}
+
         <AnalyzeButton
           tabCount={tabCount}
           loading={loading}
@@ -79,6 +111,7 @@ export default function App() {
           </section>
         )}
 
+        <CollectionsCard />
         <SessionList />
       </main>
 
