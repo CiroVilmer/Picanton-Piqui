@@ -309,7 +309,7 @@ export async function buildWrappedSlides(now: number = Date.now()): Promise<Wrap
 
   slides.push({
     kind: 'finale',
-    title: 'Hasta el próximo Wrapped',
+    title: 'Esto fue Piqui',
     subtitle: pick(FINALE_BY_TOP[dominant]),
   });
 
