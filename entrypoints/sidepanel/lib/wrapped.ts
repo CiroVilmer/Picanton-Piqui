@@ -1,5 +1,7 @@
 import { CATEGORY_META, type Category } from './classifier';
+import { collections } from './collections';
 import { MOOD_LABEL, type MoodBand } from '../mood';
+import { sessions } from './sessions';
 import { getUsageStats, type UsageStats } from './usage-stats';
 
 export type MoodSlice = {
@@ -41,12 +43,25 @@ export type WrappedSlide =
       subtitle: string;
     }
   | { kind: 'breakdown'; counts: CategoryCount[]; subtitle: string }
+  | {
+      kind: 'scrapes-total';
+      itemsScraped: number;
+      collectionsCount: number;
+      subtitle: string;
+    }
+  | { kind: 'sessions-count'; count: number; subtitle: string }
   | { kind: 'finale'; title: string; subtitle: string };
+
+export type ExtendedStats = UsageStats & {
+  itemsScraped: number;
+  collectionsCount: number;
+  sessionsCount: number;
+};
 
 export type WrappedData = {
   slides: WrappedSlide[];
   capturedAt: number;
-  stats: UsageStats;
+  stats: ExtendedStats;
 };
 
 const MOOD_ORDER: ReadonlyArray<MoodBand> = ['happy', 'calm', 'warm', 'angry'];
@@ -98,6 +113,21 @@ const FINALE_BY_TOP: Record<MoodBand, string[]> = {
   calm: ['Tranqui. Te espero.', 'Nos vemos pronto.'],
   warm: ['Respiremos un poco.', 'Volvé cuando puedas.'],
   angry: ['Que descanses. Lo necesitás.', 'Mañana es otro día.'],
+};
+
+const SCRAPES_SUBTITLE = (items: number): string => {
+  if (items === 0) return 'Cero scraping. Confiás en tu memoria.';
+  if (items < 5) return 'Apenas un par. Probando el feature.';
+  if (items < 20) return 'Vas armando tu base de datos.';
+  if (items < 100) return 'Cazaste un montón.';
+  return 'Sos un mini-Google personal.';
+};
+
+const SESSIONS_SUBTITLE = (count: number): string => {
+  if (count === 0) return 'Nunca guardaste un grupo. Vivís al filo.';
+  if (count < 5) return 'Algunas a salvo, por las dudas.';
+  if (count < 20) return 'Disciplinado. Me gusta.';
+  return 'Coleccionista de sesiones.';
 };
 
 function pick<T>(arr: ReadonlyArray<T>): T {
@@ -208,8 +238,25 @@ function buildBreakdownSlide(stats: UsageStats): WrappedSlide | null {
   };
 }
 
+async function getExtraCounts(): Promise<{
+  itemsScraped: number;
+  collectionsCount: number;
+  sessionsCount: number;
+}> {
+  const [allCollections, allSessions] = await Promise.all([
+    collections.getValue(),
+    sessions.getValue(),
+  ]);
+  return {
+    itemsScraped: allCollections.reduce((sum, c) => sum + c.items.length, 0),
+    collectionsCount: allCollections.length,
+    sessionsCount: allSessions.length,
+  };
+}
+
 export async function buildWrappedSlides(now: number = Date.now()): Promise<WrappedData> {
-  const stats = await getUsageStats(now);
+  const [usage, extras] = await Promise.all([getUsageStats(now), getExtraCounts()]);
+  const stats: ExtendedStats = { ...usage, ...extras };
 
   const dominant = dominantMoodBand(stats.moodTotals);
   const days = stats.installDate ? daysSince(stats.installDate, now) : 0;
@@ -231,17 +278,34 @@ export async function buildWrappedSlides(now: number = Date.now()): Promise<Wrap
     });
   }
 
-  const moodSlide = buildMoodSlide(stats);
-  if (moodSlide) slides.push(moodSlide);
-
   const tabsSlide = buildTabsSlide(stats);
   if (tabsSlide) slides.push(tabsSlide);
+
+  if (stats.itemsScraped > 0 || stats.collectionsCount > 0) {
+    slides.push({
+      kind: 'scrapes-total',
+      itemsScraped: stats.itemsScraped,
+      collectionsCount: stats.collectionsCount,
+      subtitle: SCRAPES_SUBTITLE(stats.itemsScraped),
+    });
+  }
 
   const topCatSlide = buildTopCategorySlide(stats);
   if (topCatSlide) slides.push(topCatSlide);
 
   const breakdownSlide = buildBreakdownSlide(stats);
   if (breakdownSlide) slides.push(breakdownSlide);
+
+  const moodSlide = buildMoodSlide(stats);
+  if (moodSlide) slides.push(moodSlide);
+
+  if (stats.sessionsCount > 0) {
+    slides.push({
+      kind: 'sessions-count',
+      count: stats.sessionsCount,
+      subtitle: SESSIONS_SUBTITLE(stats.sessionsCount),
+    });
+  }
 
   slides.push({
     kind: 'finale',
