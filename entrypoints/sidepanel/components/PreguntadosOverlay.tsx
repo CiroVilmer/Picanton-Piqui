@@ -70,71 +70,83 @@ export default function PreguntadosOverlay({ onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-canvas text-ink">
+    <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-canvas">
       <style>{KEYFRAMES}</style>
+
+      <video
+        src="/animations/presentapiqui.mp4"
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="absolute inset-0 size-full object-cover"
+      />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/55 via-black/15 to-black/65" />
 
       <button
         type="button"
         onClick={onClose}
         aria-label="Cerrar"
-        className="absolute right-3 top-3 z-30 flex size-8 items-center justify-center rounded-full bg-ink/10 text-ink backdrop-blur-sm transition hover:bg-ink/25"
+        className="absolute right-3 top-3 z-30 flex size-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition hover:bg-white/35"
       >
         <X weight="bold" size={16} />
       </button>
 
-      {phase === 'intro' && <IntroPhase onStart={start} />}
-      {phase === 'playing' && current && (
-        <PlayingPhase
-          question={current}
-          index={index}
-          total={questions.length}
-          score={correctCount}
-          picked={picked}
-          onPick={pickOption}
-          onNext={next}
-        />
-      )}
-      {phase === 'results' && (
-        <ResultsPhase
-          score={correctCount}
-          total={questions.length}
-          onPlayAgain={playAgain}
-          onClose={onClose}
-        />
-      )}
+      <div className="relative z-10 flex flex-1 flex-col">
+        {phase === 'intro' && <IntroPhase onStart={start} />}
+        {phase === 'playing' && current && (
+          <PlayingPhase
+            question={current}
+            index={index}
+            total={questions.length}
+            score={correctCount}
+            picked={picked}
+            onPick={pickOption}
+            onNext={next}
+          />
+        )}
+        {phase === 'results' && (
+          <ResultsPhase
+            score={correctCount}
+            total={questions.length}
+            onPlayAgain={playAgain}
+            onClose={onClose}
+          />
+        )}
+      </div>
     </div>
   );
 }
 
 function IntroPhase({ onStart }: { onStart: () => void }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-between gap-4 px-5 pb-6 pt-12">
-      <div className="flex w-full flex-1 flex-col items-center justify-center gap-3">
-        <video
-          src="/animations/presentapiqui.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="aspect-square w-full max-w-[320px] rounded-card bg-stage object-cover shadow-soft"
-        />
-        <div className="text-center" style={{ animation: 'pregEnter 500ms ease-out 200ms both' }}>
-          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-ink-muted">
-            piqui presenta
-          </p>
-          <h2 className="mt-1 text-3xl font-black leading-tight tracking-tight">
-            Preguntados
-          </h2>
-          <p className="mt-1 text-sm text-ink-muted">
-            {QUESTIONS_PER_ROUND} preguntas random sobre el ecosistema. Sin tiempo. Sin trampa.
-          </p>
-        </div>
+    <div className="flex flex-1 flex-col items-center justify-between gap-4 px-5 pb-6 pt-12 text-white">
+      <div className="flex w-full flex-1 flex-col items-center justify-end pb-4 text-center">
+        <p
+          className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/85 drop-shadow"
+          style={{ animation: 'pregEnter 500ms ease-out 100ms both' }}
+        >
+          piqui presenta
+        </p>
+        <h2
+          className="mt-1 text-4xl font-black leading-tight tracking-tight drop-shadow-lg"
+          style={{ animation: 'pregEnter 600ms ease-out 250ms both' }}
+        >
+          Preguntados
+        </h2>
+        <p
+          className="mt-2 max-w-[280px] text-sm font-medium text-white/90 drop-shadow"
+          style={{ animation: 'pregEnter 600ms ease-out 450ms both' }}
+        >
+          {QUESTIONS_PER_ROUND} preguntas random sobre el ecosistema. Sin tiempo. Sin trampa.
+        </p>
       </div>
 
       <button
         type="button"
         onClick={onStart}
-        className="flex w-full items-center justify-center gap-2 rounded-pill bg-ink px-5 py-3 text-sm font-bold text-white shadow-soft transition-transform duration-[120ms] ease-out hover:-translate-y-px"
+        className="flex w-full items-center justify-center gap-2 rounded-pill bg-white px-5 py-3 text-sm font-bold text-ink shadow-[0_4px_16px_rgba(0,0,0,0.25)] transition-transform duration-[120ms] ease-out hover:-translate-y-px"
+        style={{ animation: 'pregPop 500ms cubic-bezier(0.16, 1, 0.3, 1) 700ms both' }}
       >
         <Play weight="fill" size={16} />
         Empezar
@@ -169,7 +181,7 @@ function PlayingPhase({
       className="flex flex-1 flex-col gap-4 px-5 pb-5 pt-14"
       style={{ animation: 'pregEnter 350ms ease-out both' }}
     >
-      <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.18em] text-ink-muted">
+      <div className="flex items-center justify-between rounded-pill bg-black/30 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-white backdrop-blur-sm">
         <span>
           Pregunta {index + 1} / {total}
         </span>
@@ -178,7 +190,7 @@ function PlayingPhase({
         </span>
       </div>
 
-      <div className="rounded-card bg-card p-4 shadow-soft">
+      <div className="rounded-card bg-card/95 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.25)] backdrop-blur-sm">
         <span className="inline-block rounded-pill bg-accent-peach px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-ink">
           {question.company}
         </span>
@@ -187,26 +199,17 @@ function PlayingPhase({
         </h3>
       </div>
 
-      <video
-        src="/animations/presentapiqui.mp4"
-        autoPlay
-        muted
-        loop
-        playsInline
-        className="aspect-square w-40 self-center rounded-card bg-stage object-cover shadow-soft"
-      />
-
-      <ul className="flex flex-col gap-2">
+      <ul className="mt-auto flex flex-col gap-2">
         {question.options.map((opt) => {
           const isPicked = picked === opt.letter;
           const isCorrect = opt.letter === question.correct;
           const showCorrect = revealed && isCorrect;
           const showWrong = revealed && isPicked && !isCorrect;
 
-          let stateClass = 'border-outline bg-card hover:border-ink/30';
+          let stateClass = 'border-white/30 bg-card/95 hover:bg-card hover:border-white/60';
           if (showCorrect) stateClass = 'border-mood-happy bg-accent-mint';
           else if (showWrong) stateClass = 'border-mood-angry bg-accent-coral';
-          else if (revealed) stateClass = 'border-outline bg-card opacity-60';
+          else if (revealed) stateClass = 'border-white/20 bg-card/75 opacity-70';
 
           return (
             <li key={opt.letter}>
@@ -214,7 +217,7 @@ function PlayingPhase({
                 type="button"
                 onClick={() => onPick(opt.letter)}
                 disabled={revealed}
-                className={`flex w-full items-start gap-3 rounded-btn border px-3 py-2.5 text-left text-[13px] leading-snug text-ink transition-all duration-[120ms] disabled:cursor-not-allowed ${stateClass}`}
+                className={`flex w-full items-start gap-3 rounded-btn border px-3 py-2.5 text-left text-[13px] leading-snug text-ink shadow-[0_4px_12px_rgba(0,0,0,0.15)] backdrop-blur-sm transition-all duration-[120ms] disabled:cursor-not-allowed ${stateClass}`}
               >
                 <span
                   className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
@@ -244,7 +247,7 @@ function PlayingPhase({
         <button
           type="button"
           onClick={onNext}
-          className="mt-auto flex w-full items-center justify-center gap-2 rounded-pill bg-ink px-5 py-3 text-sm font-bold text-white shadow-soft transition-transform duration-[120ms] ease-out hover:-translate-y-px"
+          className="flex w-full items-center justify-center gap-2 rounded-pill bg-white px-5 py-3 text-sm font-bold text-ink shadow-[0_4px_16px_rgba(0,0,0,0.25)] transition-transform duration-[120ms] ease-out hover:-translate-y-px"
           style={{ animation: 'pregPop 300ms ease-out both' }}
         >
           {isLast ? 'Ver resultado' : 'Siguiente'}
@@ -271,29 +274,34 @@ function ResultsPhase({
 
   return (
     <div
-      className="flex flex-1 flex-col items-center justify-between gap-4 px-5 pb-6 pt-12"
+      className="flex flex-1 flex-col items-center justify-between gap-4 px-5 pb-6 pt-12 text-white"
       style={{ animation: 'pregEnter 400ms ease-out both' }}
     >
       <div className="flex w-full flex-1 flex-col items-center justify-center gap-4 text-center">
         <span
-          className="flex size-20 items-center justify-center rounded-full bg-accent-peach text-ink"
+          className="flex size-20 items-center justify-center rounded-full bg-white/95 text-ink shadow-[0_6px_24px_rgba(0,0,0,0.3)]"
           style={{ animation: 'pregPop 500ms cubic-bezier(0.16, 1, 0.3, 1) 100ms both' }}
         >
           <Trophy weight="duotone" size={42} />
         </span>
         <div style={{ animation: 'pregEnter 500ms ease-out 250ms both' }}>
-          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-ink-muted">
+          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/85 drop-shadow">
             tu score
           </p>
-          <p className="mt-1 text-6xl font-black leading-none tracking-tight">
+          <p className="mt-1 text-6xl font-black leading-none tracking-tight drop-shadow-lg">
             {score}
-            <span className="text-3xl text-ink-muted"> / {total}</span>
+            <span className="text-3xl text-white/70"> / {total}</span>
           </p>
-          <p className="mt-1 text-xs font-semibold text-ink-muted tabular-nums">{percent}%</p>
+          <p className="mt-1 text-xs font-semibold text-white/80 tabular-nums drop-shadow">
+            {percent}%
+          </p>
         </div>
-        <div className="mt-1 flex flex-col gap-1" style={{ animation: 'pregEnter 500ms ease-out 400ms both' }}>
-          <h3 className="text-xl font-bold leading-tight">{copy.title}</h3>
-          <p className="text-sm italic text-ink-muted">{copy.subtitle}</p>
+        <div
+          className="mt-1 flex max-w-[280px] flex-col gap-1"
+          style={{ animation: 'pregEnter 500ms ease-out 400ms both' }}
+        >
+          <h3 className="text-xl font-bold leading-tight drop-shadow">{copy.title}</h3>
+          <p className="text-sm italic text-white/90 drop-shadow">{copy.subtitle}</p>
         </div>
       </div>
 
@@ -301,14 +309,14 @@ function ResultsPhase({
         <button
           type="button"
           onClick={onPlayAgain}
-          className="flex w-full items-center justify-center gap-2 rounded-pill bg-ink px-5 py-3 text-sm font-bold text-white shadow-soft transition-transform duration-[120ms] ease-out hover:-translate-y-px"
+          className="flex w-full items-center justify-center gap-2 rounded-pill bg-white px-5 py-3 text-sm font-bold text-ink shadow-[0_4px_16px_rgba(0,0,0,0.25)] transition-transform duration-[120ms] ease-out hover:-translate-y-px"
         >
           Jugar otra vez
         </button>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-pill bg-transparent px-5 py-2 text-xs font-semibold text-ink-muted transition hover:text-ink"
+          className="rounded-pill bg-transparent px-5 py-2 text-xs font-semibold text-white/80 transition hover:text-white"
         >
           Cerrar
         </button>
