@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { moodBand } from './mood';
-import { useTrackedMood } from './lib/useTrackedMood';
+import { usePiquiVitals } from './lib/usePiquiVitals';
+import { usePiquiMischief } from './lib/usePiquiMischief';
 import Header from './components/Header';
 import PiquiStage from './components/PiquiStage';
 import Tabs, { type TabId } from './components/Tabs';
@@ -11,11 +12,13 @@ import ToastHost from './components/ToastHost';
 import MoodDevControl from './components/MoodDevControl';
 
 export default function App() {
-  // mood: trackeado en local:mood-segments para alimentar el Wrapped.
-  const [mood, setMood] = useTrackedMood(65);
-  const [hunger, setHunger] = useState(40);
+  // Loop tamagotchi: mood+hunger persistentes con decay (alimenta el Wrapped vía bandas).
+  const { mood, hunger, setMood, setHunger, feed } = usePiquiVitals();
   const [tab, setTab] = useState<TabId>('actions');
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Maldades cuando está enojado (cierra tabs / rickroll).
+  usePiquiMischief(mood);
 
   const band = moodBand(mood);
 
@@ -26,7 +29,7 @@ export default function App() {
         <PiquiStage band={band} mood={mood} hunger={hunger} />
         <Tabs value={tab} onChange={setTab} />
         {tab === 'actions' ? (
-          <FeaturePanel mood={mood} onOpenSettings={() => setSettingsOpen(true)} />
+          <FeaturePanel mood={mood} feed={feed} onOpenSettings={() => setSettingsOpen(true)} />
         ) : (
           <Chat mood={mood} hunger={hunger} onOpenSettings={() => setSettingsOpen(true)} />
         )}

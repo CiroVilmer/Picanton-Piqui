@@ -1,28 +1,39 @@
-import { useState } from 'react';
-import { Confetti, GameController, Stack, Table } from '@phosphor-icons/react';
+import { useEffect, useRef, useState } from 'react';
+import { BowlFood, Confetti, GameController, Stack, Table } from '@phosphor-icons/react';
 import { isAngryMode } from '../mood';
 import AccordionItem from './AccordionItem';
+import FeedPiqui from './FeedPiqui';
 import OrganizeTabs from './OrganizeTabs';
 import CaptureCollections from './CaptureCollections';
 import WrappedShowcase from './WrappedShowcase';
 import PreguntadosShowcase from './PreguntadosShowcase';
 
-type FeatureId = 'organize' | 'capture' | 'wrapped' | 'preguntados';
+type FeatureId = 'feed' | 'organize' | 'capture' | 'wrapped' | 'preguntados';
 
 /**
  * Contenido de la pestaña "Acciones": acordeón de features (apertura única).
- * Si Piqui está enojado, los botones quedan bloqueados (no expanden).
+ * "Alimentar" nunca se bloquea (es como recuperás a Piqui); el resto se bloquea
+ * cuando está enojado.
  */
 export default function FeaturePanel({
   mood,
+  feed,
   onOpenSettings,
 }: {
   mood: number;
+  feed: () => void;
   onOpenSettings: () => void;
 }) {
   const locked = isAngryMode(mood);
   const [open, setOpen] = useState<FeatureId | null>('organize');
   const toggle = (id: FeatureId) => setOpen((prev) => (prev === id ? null : id));
+
+  // Auto-abrir "Alimentar" al ENTRAR en enojo (flanco false→true).
+  const wasAngry = useRef(locked);
+  useEffect(() => {
+    if (locked && !wasAngry.current) setOpen('feed');
+    wasAngry.current = locked;
+  }, [locked]);
 
   return (
     <div className="flex flex-col gap-2">
@@ -31,6 +42,16 @@ export default function FeaturePanel({
           Piqui está picado 🌶️ — dale de comer para que te ayude.
         </p>
       )}
+      <AccordionItem
+        Icon={BowlFood}
+        title="Alimentar a Piqui"
+        desc="Dale comida de tus pestañas"
+        open={open === 'feed'}
+        locked={false}
+        onToggle={() => toggle('feed')}
+      >
+        <FeedPiqui onFeed={feed} />
+      </AccordionItem>
       <AccordionItem
         Icon={Stack}
         title="Organizar pestañas"
