@@ -93,10 +93,11 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set([
   'data',
 ]);
 
-const INFER_AND_EXTRACT_SYSTEM_PROMPT = `Sos un extractor de datos web. El usuario te da una página y vos:
+const INFER_SCHEMA_SYSTEM_PROMPT = `Sos un diseñador de schemas para una base de datos de páginas web. El usuario te da una página y vos:
 1. Identificás qué tipo de cosa es (y si es un producto, qué SUBTIPO: mueble, tecnología, ropa, electrodoméstico, herramienta, etc.).
 2. Proponés 5-10 campos que tendría sentido trackear si juntara varias páginas del mismo tipo. INCLUÍ campos genéricos (precio, marca) Y campos específicos del subtipo (medidas, materiales, specs técnicas, etc.).
-3. Extraés los valores específicos de esta página.
+
+NO extraés valores todavía — solo el schema. Otro proceso extrae los valores después.
 
 EJEMPLOS por tipo:
 
@@ -119,27 +120,23 @@ PRODUCTO E-COMMERCE — adaptá los campos al SUBTIPO de producto:
 REGLAS DURAS:
 - Identificá el SUBTIPO antes de elegir campos. NO uses solo campos genéricos (precio, marca) si la página tiene specs concretas (medidas, materiales, capacidades, etc.) — esos son la diferencia entre una tabla útil y una vacía.
 - Los nombres de campo describen el CONTENIDO (ej: "precio", "material", "ram"). NUNCA uses como key: "type", "required", "key", "label", "schema", "value", "properties", "items", "additionalProperties", "fields", "data".
-- Si un valor no aparece en la página, devolvé null (NO inventes).
 - Types posibles: 'string', 'number', 'url', 'date'.
 - Keys en snake_case sin acentos. Labels en español natural ('Precio', 'Dimensiones').
-- Para dimensiones, podés devolverlas como string ("150 x 80 x 75 cm") o desglosadas si es claro (ancho_cm, alto_cm, profundidad_cm). Lo que sea más útil para esta categoría.
+- Para dimensiones, podés definirlas como string ("150 x 80 x 75 cm") o desglosadas (ancho_cm, alto_cm, profundidad_cm). Lo que sea más útil para esta categoría.
 
 Output: SOLO JSON, sin markdown, sin explicación, sin texto antes o después.
 Shape EXACTA:
 {
   "fields": [
     {"key": "precio", "label": "Precio", "type": "number"},
-    {"key": "material", "label": "Material", "type": "string"}
-  ],
-  "data": {
-    "precio": 89999,
-    "material": "MDF símil mármol"
-  }
+    {"key": "material", "label": "Material", "type": "string"},
+    {"key": "dimensiones", "label": "Dimensiones", "type": "string"}
+  ]
 }`;
 
-const INFER_RESPONSE_SCHEMA = {
+const INFER_SCHEMA_RESPONSE_SCHEMA = {
   type: 'object',
-  required: ['fields', 'data'],
+  required: ['fields'],
   properties: {
     fields: {
       type: 'array',
@@ -155,7 +152,6 @@ const INFER_RESPONSE_SCHEMA = {
         },
       },
     },
-    data: { type: 'object' },
   },
 } as const;
 
@@ -220,40 +216,71 @@ function validateSchema(rawFields: unknown): Field[] {
   return result;
 }
 
+export type SaveError =
+  | 'no-key'
+  | 'auth'
+  | 'network'
+  | 'parse'
+  | 'empty'
+  | 'unknown'
+  | 'invalid-schema';
+
 export type SavePageResult =
   | { ok: true; collection: Collection; item: Item }
-  | { ok: false; error: 'no-key' | 'auth' | 'network' | 'parse' | 'empty' | 'unknown' | 'invalid-schema'; message?: string };
+  | { ok: false; error: SaveError; message?: string };
 
-export async function savePageToNewCollection(
-  name: string,
+async function inferSchemaForPage(
   page: PageContent,
-): Promise<SavePageResult> {
-  const result: GenerateResult<{ fields: unknown; data: Record<string, unknown> }> =
-    await generateStructured(
-      INFER_AND_EXTRACT_SYSTEM_PROMPT,
-      buildUserPrompt(page),
-      INFER_RESPONSE_SCHEMA,
-    );
-
+): Promise<{ ok: true; schema: Field[] } | { ok: false; error: SaveError; message?: string }> {
+  const result: GenerateResult<{ fields: unknown }> = await generateStructured(
+    INFER_SCHEMA_SYSTEM_PROMPT,
+    buildUserPrompt(page),
+    INFER_SCHEMA_RESPONSE_SCHEMA,
+  );
   if (!result.ok) return { ok: false, error: result.error, message: result.message };
 
   const schema = validateSchema(result.data.fields);
   if (schema.length === 0) {
     return { ok: false, error: 'invalid-schema', message: 'El modelo no devolvió campos válidos.' };
   }
+  return { ok: true, schema };
+}
+
+async function extractValuesForPage(
+  schema: Field[],
+  page: PageContent,
+): Promise<{ ok: true; values: Record<string, unknown> } | { ok: false; error: SaveError; message?: string }> {
+  const result: GenerateResult<{ data: Record<string, unknown> }> = await generateStructured(
+    buildExtractSystemPrompt(schema),
+    buildUserPrompt(page),
+    buildExtractResponseSchema(schema),
+  );
+  if (!result.ok) return { ok: false, error: result.error, message: result.message };
 
   const cleanValues: Record<string, unknown> = {};
   for (const f of schema) {
     cleanValues[f.key] = result.data.data?.[f.key] ?? null;
   }
+  return { ok: true, values: cleanValues };
+}
+
+export async function savePageToNewCollection(
+  name: string,
+  page: PageContent,
+): Promise<SavePageResult> {
+  const schemaResult = await inferSchemaForPage(page);
+  if (!schemaResult.ok) return schemaResult;
+
+  const valuesResult = await extractValuesForPage(schemaResult.schema, page);
+  if (!valuesResult.ok) return valuesResult;
 
   const item: Item = {
     id: crypto.randomUUID(),
     source: { url: page.url, title: page.title, capturedAt: Date.now() },
-    values: cleanValues,
+    values: valuesResult.values,
   };
 
-  const collection = await createCollectionAndFirstItem(name, schema, item);
+  const collection = await createCollectionAndFirstItem(name, schemaResult.schema, item);
   return { ok: true, collection, item };
 }
 
@@ -265,23 +292,13 @@ export async function savePageToExistingCollection(
   const target = current.find((c) => c.id === collectionId);
   if (!target) return { ok: false, error: 'unknown', message: 'La lista no existe.' };
 
-  const result: GenerateResult<{ data: Record<string, unknown> }> = await generateStructured(
-    buildExtractSystemPrompt(target.schema),
-    buildUserPrompt(page),
-    buildExtractResponseSchema(target.schema),
-  );
-
-  if (!result.ok) return { ok: false, error: result.error, message: result.message };
-
-  const cleanValues: Record<string, unknown> = {};
-  for (const f of target.schema) {
-    cleanValues[f.key] = result.data.data?.[f.key] ?? null;
-  }
+  const valuesResult = await extractValuesForPage(target.schema, page);
+  if (!valuesResult.ok) return valuesResult;
 
   const item: Item = {
     id: crypto.randomUUID(),
     source: { url: page.url, title: page.title, capturedAt: Date.now() },
-    values: cleanValues,
+    values: valuesResult.values,
   };
 
   const updated = await appendItemToCollection(collectionId, item);
