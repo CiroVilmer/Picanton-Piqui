@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { X } from '@phosphor-icons/react';
+import { SpeakerHigh, SpeakerSlash, X } from '@phosphor-icons/react';
+
+const AUDIO_SRC = '/audio/wrapped.mp3';
+const AUDIO_VOLUME = 0.45;
 import { buildWrappedSlides, type WrappedData, type WrappedSlide } from '../lib/wrapped';
 import type { Category } from '../lib/classifier';
 import type { MoodBand } from '../mood';
@@ -54,6 +57,9 @@ export default function WrappedOverlay({ onClose }: Props) {
   const [data, setData] = useState<WrappedData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [current, setCurrent] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [audioAvailable, setAudioAvailable] = useState(true);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,6 +75,30 @@ export default function WrappedOverlay({ onClose }: Props) {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.volume = AUDIO_VOLUME;
+    audio.loop = true;
+    audio.play().catch((err) => {
+      console.debug('[piqui wrapped] audio autoplay blocked or src missing', err);
+    });
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+    };
+  }, []);
+
+  function toggleMute() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.muted = !audio.muted;
+    setMuted(audio.muted);
+    if (!audio.muted && audio.paused) {
+      audio.play().catch(() => undefined);
+    }
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -113,14 +143,33 @@ export default function WrappedOverlay({ onClose }: Props) {
         />
       </div>
 
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label="Cerrar"
-        className="absolute right-3 top-3 z-30 flex size-8 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition hover:bg-black/50"
-      >
-        <X weight="bold" size={16} />
-      </button>
+      <audio
+        ref={audioRef}
+        src={AUDIO_SRC}
+        preload="auto"
+        onError={() => setAudioAvailable(false)}
+      />
+
+      <div className="absolute right-3 top-3 z-30 flex items-center gap-1.5">
+        {audioAvailable && (
+          <button
+            type="button"
+            onClick={toggleMute}
+            aria-label={muted ? 'Activar audio' : 'Silenciar audio'}
+            className="flex size-8 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition hover:bg-black/50"
+          >
+            {muted ? <SpeakerSlash weight="bold" size={16} /> : <SpeakerHigh weight="bold" size={16} />}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          className="flex size-8 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition hover:bg-black/50"
+        >
+          <X weight="bold" size={16} />
+        </button>
+      </div>
 
       <div className="relative flex-1 overflow-hidden">
         {!data && !error && (
