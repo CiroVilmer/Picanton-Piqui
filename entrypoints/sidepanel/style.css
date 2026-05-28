@@ -1,7 +1,75 @@
 @import "tailwindcss";
 
+/*
+ * Piqui design tokens — mapeados 1:1 desde piqui-manifest.md §4.
+ * Tailwind v4 los expone como utilidades (bg-canvas, text-ink, rounded-card, etc.)
+ * y como var(--color-…) cuando hace falta CSS crudo.
+ */
+@theme {
+  /* Neutrales */
+  --color-canvas: #fff8ef;
+  --color-card: #ffffff;
+  --color-sunken: #fbeedd;
+  --color-ink: #2c2218;
+  --color-ink-muted: #8a7a66;
+  --color-outline: #f0ddc4;
+  --color-stage: #fdfbf5; /* fondo del viewport del Stage */
+
+  /* Mood — firma visual (borde del stage, fills de bars, cara de Piqui) */
+  --color-mood-happy: #58c97a;
+  --color-mood-calm: #c9d964;
+  --color-mood-warm: #f4a65a;
+  --color-mood-angry: #e25c5c;
+
+  /* Acentos — backgrounds de los íconos de action cards */
+  --color-accent-mint: #d2f2d9;
+  --color-accent-peach: #ffe0cb;
+  --color-accent-coral: #ffd3d3;
+
+  /* Radios */
+  --radius-card: 20px;
+  --radius-btn: 18px;
+  --radius-pill: 999px;
+
+  /* Sombras */
+  --shadow-soft: 0 2px 8px rgba(180, 130, 80, 0.08);
+  --shadow-press: inset 0 2px 0 rgba(255, 255, 255, 0.6);
+
+  /* Tipografía */
+  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+
+  /* Animaciones */
+  --animate-typing-bounce: typing-bounce 1.2s ease-in-out infinite;
+  --animate-piqui-bob: piqui-bob 4s ease-in-out infinite;
+}
+
+@keyframes typing-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+@keyframes piqui-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(1.5deg);
+  }
+}
+
 @layer base {
   body {
-    @apply bg-zinc-950 text-zinc-100 antialiased;
+    @apply bg-canvas text-ink font-sans antialiased;
+    font-weight: 500;
+    line-height: 1.4;
   }
 }

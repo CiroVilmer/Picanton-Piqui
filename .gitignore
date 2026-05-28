@@ -32,3 +32,6 @@ setup.md
 .env
 .env.local
 .env.*.local
+
+# Brainstorming visual companion (mockups locales)
+.superpowers/
