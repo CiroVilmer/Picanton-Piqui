@@ -19,10 +19,12 @@ export default function FeaturePanel({
   mood,
   feed,
   onOpenSettings,
+  onPreguntadosComplete,
 }: {
   mood: number;
   feed: () => void;
   onOpenSettings: () => void;
+  onPreguntadosComplete: () => void;
 }) {
   const locked = isAngryMode(mood);
   const [open, setOpen] = useState<FeatureId | null>('organize');
@@ -90,7 +92,7 @@ export default function FeaturePanel({
         locked={locked}
         onToggle={() => toggle('preguntados')}
       >
-        <PreguntadosShowcase />
+        <PreguntadosShowcase onComplete={onPreguntadosComplete} />
       </AccordionItem>
     </div>
   );

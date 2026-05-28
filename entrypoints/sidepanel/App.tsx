@@ -29,7 +29,12 @@ export default function App() {
         <PiquiStage band={band} mood={mood} hunger={hunger} />
         <Tabs value={tab} onChange={setTab} />
         {tab === 'actions' ? (
-          <FeaturePanel mood={mood} feed={feed} onOpenSettings={() => setSettingsOpen(true)} />
+          <FeaturePanel
+            mood={mood}
+            feed={feed}
+            onOpenSettings={() => setSettingsOpen(true)}
+            onPreguntadosComplete={() => setMood(100)}
+          />
         ) : (
           <Chat mood={mood} hunger={hunger} onOpenSettings={() => setSettingsOpen(true)} />
         )}

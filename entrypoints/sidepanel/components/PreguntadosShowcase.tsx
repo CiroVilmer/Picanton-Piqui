@@ -6,7 +6,7 @@ import PreguntadosOverlay from './PreguntadosOverlay';
  * Launcher del Preguntados: botón + mount condicional del overlay.
  * El overlay re-pickea 4 preguntas random cada vez que se abre.
  */
-export default function PreguntadosShowcase() {
+export default function PreguntadosShowcase({ onComplete }: { onComplete?: () => void }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="flex flex-col gap-2">
@@ -21,7 +21,7 @@ export default function PreguntadosShowcase() {
       <p className="text-center text-[11px] text-ink-muted">
         4 preguntas random sobre las startups del ecosistema.
       </p>
-      {open && <PreguntadosOverlay onClose={() => setOpen(false)} />}
+      {open && <PreguntadosOverlay onClose={() => setOpen(false)} onComplete={onComplete} />}
     </div>
   );
 }

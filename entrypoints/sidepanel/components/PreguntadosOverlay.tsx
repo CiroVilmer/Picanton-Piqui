@@ -19,6 +19,8 @@ import {
 
 type Props = {
   onClose: () => void;
+  /** Se llama al terminar la ronda (entra a resultados): sube la felicidad al máximo. */
+  onComplete?: () => void;
 };
 
 type Phase = 'intro' | 'playing' | 'results';
@@ -37,7 +39,7 @@ const KEYFRAMES = `
   }
 `;
 
-export default function PreguntadosOverlay({ onClose }: Props) {
+export default function PreguntadosOverlay({ onClose, onComplete }: Props) {
   const [phase, setPhase] = useState<Phase>('intro');
   const [questions, setQuestions] = useState<Question[]>(() => pickRandomQuestions());
   const [index, setIndex] = useState(0);
@@ -90,6 +92,7 @@ export default function PreguntadosOverlay({ onClose }: Props) {
     if (!current) return;
     if (index + 1 >= questions.length) {
       setPhase('results');
+      onComplete?.(); // terminó la ronda → felicidad al máximo
       return;
     }
     setIndex((i) => i + 1);
