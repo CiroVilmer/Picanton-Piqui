@@ -3,9 +3,10 @@ import { moodBand } from './mood';
 import Header from './components/Header';
 import PiquiStage from './components/PiquiStage';
 import Tabs, { type TabId } from './components/Tabs';
-import ActionMenu from './components/ActionMenu';
+import FeaturePanel from './components/FeaturePanel';
 import Chat from './components/Chat';
 import Footer from './components/Footer';
+import ToastHost from './components/ToastHost';
 import MoodDevControl from './components/MoodDevControl';
 
 export default function App() {
@@ -22,11 +23,12 @@ export default function App() {
       <main className="flex flex-1 flex-col gap-4 px-4 pb-4">
         <PiquiStage band={band} mood={mood} hunger={hunger} />
         <Tabs value={tab} onChange={setTab} />
-        {tab === 'actions' ? <ActionMenu mood={mood} /> : <Chat />}
+        {tab === 'actions' ? <FeaturePanel mood={mood} /> : <Chat />}
       </main>
       {/* dev-only — borrar para producción */}
       <MoodDevControl mood={mood} hunger={hunger} onMood={setMood} onHunger={setHunger} />
       <Footer />
+      <ToastHost />
     </div>
   );
 }
