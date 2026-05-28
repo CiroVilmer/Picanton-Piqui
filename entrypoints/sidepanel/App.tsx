@@ -4,6 +4,7 @@ import { ApplyGroupingButton } from './components/ApplyGroupingButton';
 import { GroupedTabsCard } from './components/GroupedTabsCard';
 import { SessionList } from './components/SessionList';
 import { ToastHost } from './components/ToastHost';
+import { UngroupAllButton } from './components/UngroupAllButton';
 import { analyzeTabs, type Analysis } from './lib/classifier';
 import { pushToast } from './lib/toast';
 import { useTabCount } from './lib/useTabCount';
@@ -69,7 +70,10 @@ export default function App() {
                     />
                   ))}
                 </div>
-                <ApplyGroupingButton analysis={analysis} onReanalyze={onAnalyze} />
+                <div className="space-y-2">
+                  <ApplyGroupingButton analysis={analysis} onReanalyze={onAnalyze} />
+                  <UngroupAllButton />
+                </div>
               </>
             )}
           </section>
