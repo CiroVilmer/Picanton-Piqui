@@ -187,6 +187,15 @@ function PlayingPhase({
         </h3>
       </div>
 
+      <video
+        src="/animations/presentapiqui.mp4"
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="aspect-square w-40 self-center rounded-card bg-stage object-cover shadow-soft"
+      />
+
       <ul className="flex flex-col gap-2">
         {question.options.map((opt) => {
           const isPicked = picked === opt.letter;
