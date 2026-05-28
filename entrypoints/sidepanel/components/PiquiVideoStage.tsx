@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CROSSFADE_MS } from '../piqui-anim';
 import { usePiquiAnimation, type PiquiClip } from '../usePiquiAnimation';
 import type { MoodBand } from '../mood';
@@ -16,9 +16,19 @@ export default function PiquiVideoStage({ mood, band }: { mood: number; band: Mo
   return <Crossfader clip={clip} band={band} onEnded={onClipEnded} />;
 }
 
-interface Slots {
-  a: PiquiClip | null;
-  b: PiquiClip | null;
+/**
+ * Crossfade de dos capas. Cada slot lleva un `token` incremental: al cargar un clip
+ * en el slot de atrás se bumpea el token, lo que cambia la `key` del <video> y fuerza
+ * un remount → carga fresca → onCanPlay siempre dispara → el flip nunca se traba.
+ * (Sin el token, reusar el mismo src en un slot dejaba el video congelado.)
+ */
+interface SlotData {
+  clip: PiquiClip;
+  token: number;
+}
+interface SlotsState {
+  a: SlotData | null;
+  b: SlotData | null;
   front: 'a' | 'b';
 }
 
@@ -34,42 +44,49 @@ function Crossfader({
   onEnded: () => void;
 }) {
   const [failed, setFailed] = useState(false);
-  const [slots, setSlots] = useState<Slots>({ a: clip, b: null, front: 'a' });
+  const tokenRef = useRef(0);
+  const [slots, setSlots] = useState<SlotsState>(() => ({
+    a: { clip, token: 0 },
+    b: null,
+    front: 'a',
+  }));
 
-  // Cuando cambia el clip, lo cargamos en el slot de atrás (oculto). El flip a front
-  // recién ocurre cuando ese video puede reproducir (onCanPlay) → sin frame negro.
+  // Clip nuevo → cargarlo en el slot de atrás con token fresco (remonta el <video>).
   useEffect(() => {
     setSlots((prev) => {
-      const frontClip = prev.front === 'a' ? prev.a : prev.b;
-      if (frontClip && frontClip.src === clip.src) {
-        // Mismo src: actualizamos los flags en el lugar, sin recargar el video.
-        return prev.front === 'a' ? { ...prev, a: clip } : { ...prev, b: clip };
+      const frontSlot = prev.front === 'a' ? prev.a : prev.b;
+      if (frontSlot && frontSlot.clip.src === clip.src) {
+        // Mismo src ya al frente: sólo refrescamos la referencia, sin remount.
+        return prev.front === 'a'
+          ? { ...prev, a: { clip, token: frontSlot.token } }
+          : { ...prev, b: { clip, token: frontSlot.token } };
       }
-      return prev.front === 'a' ? { ...prev, b: clip } : { ...prev, a: clip };
+      tokenRef.current += 1;
+      const slot: SlotData = { clip, token: tokenRef.current };
+      return prev.front === 'a' ? { ...prev, b: slot } : { ...prev, a: slot };
     });
   }, [clip]);
 
-  // Sin videos disponibles: el SVG fallback sigue al `band` directamente, así que el
-  // secuenciador puede quedar quieto sin afectar lo que se ve.
   if (failed) {
+    // Sin videos: el SVG fallback sigue al `band` directamente; no necesita la máquina.
     return <PiquiCharacter band={band} />;
   }
 
   const handleCanPlay = (slot: 'a' | 'b') => {
-    // El slot recién cargado (el de atrás) ya puede reproducir → traerlo al frente.
+    // El slot recién cargado (atrás) ya puede reproducir → traerlo al frente (crossfade).
     setSlots((prev) => (prev.front === slot ? prev : { ...prev, front: slot }));
   };
 
   return (
     <>
       {SLOTS.map((slot) => {
-        const c = slots[slot];
-        if (!c) return null;
+        const data = slots[slot];
+        if (!data) return null;
         const visible = slots.front === slot;
         return (
           <video
-            key={slot}
-            src={c.src}
+            key={`${slot}-${data.token}`}
+            src={data.clip.src}
             autoPlay
             muted
             playsInline

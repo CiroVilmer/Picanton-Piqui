@@ -12,7 +12,13 @@ type FeatureId = 'organize' | 'capture' | 'wrapped';
  * Contenido de la pestaña "Acciones": acordeón de features (apertura única).
  * Si Piqui está enojado, los botones quedan bloqueados (no expanden).
  */
-export default function FeaturePanel({ mood }: { mood: number }) {
+export default function FeaturePanel({
+  mood,
+  onOpenSettings,
+}: {
+  mood: number;
+  onOpenSettings: () => void;
+}) {
   const locked = isAngryMode(mood);
   const [open, setOpen] = useState<FeatureId | null>('organize');
   const toggle = (id: FeatureId) => setOpen((prev) => (prev === id ? null : id));
@@ -42,7 +48,7 @@ export default function FeaturePanel({ mood }: { mood: number }) {
         locked={locked}
         onToggle={() => toggle('capture')}
       >
-        <CaptureCollections />
+        <CaptureCollections onOpenSettings={onOpenSettings} />
       </AccordionItem>
       <AccordionItem
         Icon={Confetti}

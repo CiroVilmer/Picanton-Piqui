@@ -7,6 +7,7 @@ import Tabs, { type TabId } from './components/Tabs';
 import FeaturePanel from './components/FeaturePanel';
 import Chat from './components/Chat';
 import Footer from './components/Footer';
+import SettingsPanel from './components/SettingsPanel';
 import ToastHost from './components/ToastHost';
 import MoodDevControl from './components/MoodDevControl';
 
@@ -15,20 +16,26 @@ export default function App() {
   const [mood, setMood] = useTrackedMood(65);
   const [hunger, setHunger] = useState(40);
   const [tab, setTab] = useState<TabId>('actions');
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const band = moodBand(mood);
 
   return (
-    <div className="flex min-h-screen flex-col bg-canvas text-ink">
-      <Header />
+    <div className="relative flex min-h-screen flex-col bg-canvas text-ink">
+      <Header onSettings={() => setSettingsOpen(true)} />
       <main className="flex flex-1 flex-col gap-4 px-4 pb-4">
         <PiquiStage band={band} mood={mood} hunger={hunger} />
         <Tabs value={tab} onChange={setTab} />
-        {tab === 'actions' ? <FeaturePanel mood={mood} /> : <Chat />}
+        {tab === 'actions' ? (
+          <FeaturePanel mood={mood} onOpenSettings={() => setSettingsOpen(true)} />
+        ) : (
+          <Chat />
+        )}
       </main>
       {/* dev-only — borrar para producción */}
       <MoodDevControl mood={mood} hunger={hunger} onMood={setMood} onHunger={setHunger} />
       <Footer />
+      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <ToastHost />
     </div>
   );

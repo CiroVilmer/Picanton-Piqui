@@ -39,41 +39,26 @@ function fmtVal(v: unknown): string {
 }
 
 /** Feature "Capturar página": scrapea la tab activa a una lista estructurada (Gemini). */
-export default function CaptureCollections() {
+export default function CaptureCollections({ onOpenSettings }: { onOpenSettings: () => void }) {
   const key = useStorageValue(apiKey); // null = loading, '' = sin key, string = lista
   const active = useActiveTabScrappable();
   const cols = useStorageValue(collections);
-  const [keyInput, setKeyInput] = useState('');
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // Gate: pedir API key si no hay.
+  // Gate: si no hay API key, mandamos a Configuración (se setea allá).
   if (key === '') {
     return (
       <div className="flex flex-col gap-2 text-[13px]">
-        <p className="text-ink-muted">Para capturar páginas necesito tu API key de Gemini.</p>
-        <div className="flex gap-2">
-          <input
-            type="password"
-            value={keyInput}
-            onChange={(e) => setKeyInput(e.target.value)}
-            placeholder="Pegá tu API key…"
-            className="min-w-0 flex-1 rounded-pill border border-outline bg-card px-3 py-2 text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-mood-happy"
-          />
-          <button
-            type="button"
-            aria-label="Guardar API key"
-            onClick={async () => {
-              const k = keyInput.trim();
-              if (!k) return;
-              await apiKey.setValue(k);
-              pushToast('API key guardada.');
-            }}
-            className="flex shrink-0 items-center justify-center rounded-pill bg-mood-happy px-3 py-2 font-semibold text-white"
-          >
-            <Key weight="bold" size={16} />
-          </button>
-        </div>
+        <p className="text-ink-muted">Necesitás tu API key de Gemini para capturar páginas.</p>
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="flex items-center justify-center gap-2 self-start rounded-pill bg-mood-happy px-4 py-2 font-semibold text-white"
+        >
+          <Key weight="bold" size={16} />
+          Configurar API key
+        </button>
       </div>
     );
   }

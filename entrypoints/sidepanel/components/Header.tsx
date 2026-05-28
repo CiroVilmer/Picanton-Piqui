@@ -1,7 +1,7 @@
 import { Gear } from '@phosphor-icons/react';
 
 /** Header — logo de Piqui centrado + acceso a settings (manifest §7.1). */
-export default function Header() {
+export default function Header({ onSettings }: { onSettings: () => void }) {
   return (
     <header className="relative flex h-[88px] shrink-0 items-center justify-center">
       <img
@@ -14,7 +14,7 @@ export default function Header() {
         type="button"
         aria-label="Configuración"
         title="Configuración"
-        onClick={() => console.log('settings: panel próximamente')}
+        onClick={onSettings}
         className="absolute right-4 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-sunken hover:text-ink active:shadow-press"
       >
         <Gear weight="duotone" size={22} />
