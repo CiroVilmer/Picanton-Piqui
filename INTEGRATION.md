@@ -2,9 +2,10 @@
 
 Este PR aporta SOLO `entrypoints/sidepanel/lib/` — las utilidades async/storage/AI para que la UI las llame desde sus handlers. No incluye componentes (eso ya lo tenés).
 
-Cubre **dos features end-to-end:**
+Cubre **tres features end-to-end:**
 1. **Tabs**: analizar pestañas abiertas → clasificarlas por heurística keyword-based en 7 categorías → aplicar/quitar grupos en Chrome → guardar/reabrir/renombrar/borrar sesiones.
 2. **Collections**: scrapear cualquier página activa con Gemini 3.1 (API key del user) → schema auto-inferido por subtipo de producto → tabla persistente → export CSV.
+3. **Wrapped**: tracking persistente de tabs abiertas + timeline de mood + install date → `buildWrappedSlides()` devuelve slides discriminadas tipo Spotify Wrapped listas para meter en un carousel.
 
 Stack: WXT 0.20 + React 19 + TS + Tailwind v4 + `@google/genai`. Todo client-side; sin backend HTTP propio.
 
@@ -117,6 +118,118 @@ downloadCsv(collection): Promise<void>              // chrome.downloads.download
 
 ---
 
+---
+
+## Wrapped — `lib/usage-stats.ts` + `lib/wrapped.ts` + `lib/useTrackedMood.ts`
+
+### Tracking automático (corre desde el background)
+- Cada `chrome.tabs.onCreated` y cada cambio de URL → se clasifica con `classify(url)` y se acumula en counters por categoría.
+- `ensureInstallDate()` setea el timestamp del primer install (idempotente).
+- Listeners wired en `entrypoints/background.ts` — no tenés que hacer nada.
+
+Storage keys reservadas:
+- `'local:install-date'` — `number` (timestamp, set una vez)
+- `'local:tab-counters'` — `{ total, byCategory, firstOpenedAt, lastOpenedAt }`
+- `'local:mood-segments'` — `Array<{ band, from, to }>` (segmentos cerrados)
+- `'local:mood-current'` — `{ band, since } | null` (segmento abierto)
+
+### Tu único cambio en App.tsx — `useTrackedMood`
+
+```ts
+import { useTrackedMood } from './lib/useTrackedMood';
+
+// Reemplazá esto:
+// const [mood, setMood] = useState(65);
+
+// Por esto:
+const [mood, setMood] = useTrackedMood(65);
+```
+
+Mismo API que useState (`[value, setter]`). Internamente: cada vez que `value` cambia de banda (`moodBand(value)` distinto), cierra el segmento anterior + abre uno nuevo en storage. Sin tracking si el mood no cambia de banda (mover de 65 a 70 no genera evento, los dos son `calm`).
+
+### Stats agregadas
+```ts
+getUsageStats(now?: number): Promise<UsageStats>
+
+type UsageStats = {
+  installDate: number | null;          // ms epoch o null si no seteado
+  durationMs: number;                  // now - installDate
+  moodTotals: Record<MoodBand, number>;  // ms por banda (incluye el segmento current)
+  moodTotalTrackedMs: number;          // suma total para calcular porcentajes
+  tabs: {
+    total: number;
+    byCategory: Partial<Record<Category, number>>;
+    firstOpenedAt: number | null;
+    lastOpenedAt: number | null;
+  };
+};
+```
+
+### Slide builder
+```ts
+buildWrappedSlides(now?: number): Promise<WrappedData>
+
+type WrappedData = { slides: WrappedSlide[]; capturedAt: number; stats: UsageStats };
+```
+
+`WrappedSlide` es una discriminated union por `kind`. Cada kind tiene los campos que necesitás para renderizar:
+
+```ts
+type WrappedSlide =
+  | { kind: 'hook';              title: string; subtitle: string }
+  | { kind: 'time-total';        days: number; durationLabel: string; subtitle: string }
+  | { kind: 'mood-distribution'; slices: MoodSlice[]; topBand: MoodBand;
+                                 topLabel: string; topPercent: number; subtitle: string }
+  | { kind: 'tabs-total';        total: number; perDay: number | null; subtitle: string }
+  | { kind: 'top-category';      category: Category; label: string; count: number;
+                                 percentOfTotal: number; subtitle: string }
+  | { kind: 'breakdown';         counts: CategoryCount[]; subtitle: string }
+  | { kind: 'finale';            title: string; subtitle: string };
+```
+
+El builder **skipea slides sin data** (ej: si nunca cambió mood → no hay `mood-distribution`; si no abrió tabs → no hay `tabs-total`/`top-category`/`breakdown`). Siempre devuelve al menos `hook` + `finale`.
+
+Las `subtitle` son líneas con personalidad Piqui, pickeadas según la banda dominante (`HOOK_SUBTITLE_BY_TOP`, `MOOD_SUBTITLE_BY_TOP`, `FINALE_BY_TOP`, etc.). Si querés más variantes, agregalas en los pools de `lib/wrapped.ts`.
+
+### Wire-up del carousel (referencia)
+```tsx
+import { useState, useEffect } from 'react';
+import { buildWrappedSlides, type WrappedSlide } from './lib/wrapped';
+
+function MyWrappedCarousel() {
+  const [slides, setSlides] = useState<WrappedSlide[] | null>(null);
+
+  useEffect(() => {
+    buildWrappedSlides().then((data) => setSlides(data.slides));
+  }, []);
+
+  if (!slides) return null;
+  return (
+    <>
+      {slides.map((s, i) => {
+        switch (s.kind) {
+          case 'hook':              return <Slide key={i} title={s.title} subtitle={s.subtitle} />;
+          case 'time-total':        return <Slide key={i} big={s.durationLabel} subtitle={s.subtitle} />;
+          case 'mood-distribution': return <MoodSlide key={i} slices={s.slices} ... />;
+          case 'tabs-total':        return <Slide key={i} big={String(s.total)} subtitle={s.subtitle} />;
+          case 'top-category':      return <Slide key={i} ... />;
+          case 'breakdown':         return <BreakdownSlide key={i} counts={s.counts} />;
+          case 'finale':            return <Slide key={i} title={s.title} subtitle={s.subtitle} />;
+        }
+      })}
+    </>
+  );
+}
+```
+
+### Reset manual (debug)
+```ts
+import { resetUsageStats } from './lib/usage-stats';
+await resetUsageStats();  // borra install-date + mood-segments + mood-current + tab-counters
+```
+
+---
+
 ## Hooks reactivos — `lib/`
 
 ```ts
@@ -218,7 +331,7 @@ await downloadCsv(collection);   // chrome.downloads.download arranca solo, no r
 
 ### Tabs / Sessions
 - **`shouldSkipTab`** excluye pinned + URLs internas. Llamalo siempre antes de meter una tab al flow.
-- **Storage keys reservadas**: `'local:sessions'`, `'local:collections'`, `'local:gemini-api-key'`. No reusar.
+- **Storage keys reservadas**: `'local:sessions'`, `'local:collections'`, `'local:gemini-api-key'`, `'local:install-date'`, `'local:tab-counters'`, `'local:mood-segments'`, `'local:mood-current'`. No reusar.
 - **Reopen es serial**, no paralelo — rate limit de `chrome.tabs.create` no testeado en bulk.
 
 ### Collections / Gemini
@@ -239,6 +352,6 @@ await downloadCsv(collection);   // chrome.downloads.download arranca solo, no r
 
 ## Out of scope
 
-Mascot anims · Wrapped (carousel post-Análisis) · AI fallback para categoría `otros` · drag-and-drop entre cards · reapertura combinada de varias sesiones.
+Mascot anims (ya en main) · AI fallback para categoría `otros` · drag-and-drop entre cards · reapertura combinada de varias sesiones · Wrapped carousel UI (`lib/wrapped.ts` listo; el carousel lo arma tu compañero).
 
 Ver `docs/piqui-plan.md` (en el repo de prep) para el detalle de cada uno.
