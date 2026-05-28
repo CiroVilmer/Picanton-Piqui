@@ -97,19 +97,27 @@ export default function WrappedOverlay({ onClose }: Props) {
     <div className="fixed inset-0 z-[100] flex flex-col bg-zinc-950 text-white">
       <style>{KEYFRAMES}</style>
 
-      {data && (
-        <ProgressBar
-          count={data.slides.length}
-          current={current}
-          onComplete={advance}
+      <div className="absolute inset-x-0 top-0 z-20 flex flex-col items-center gap-2 px-3 pt-3">
+        {data && (
+          <ProgressBar
+            count={data.slides.length}
+            current={current}
+            onComplete={advance}
+          />
+        )}
+        <img
+          src="/icon/128.png"
+          alt="Piqui"
+          className="size-9 rounded-full bg-white/15 p-0.5 shadow-[0_2px_8px_rgba(0,0,0,0.25)] backdrop-blur-sm"
+          draggable={false}
         />
-      )}
+      </div>
 
       <button
         type="button"
         onClick={onClose}
         aria-label="Cerrar"
-        className="absolute right-3 top-5 z-20 flex size-8 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition hover:bg-black/50"
+        className="absolute right-3 top-3 z-30 flex size-8 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition hover:bg-black/50"
       >
         <X weight="bold" size={16} />
       </button>
@@ -156,7 +164,7 @@ function ProgressBar({
   onComplete: () => void;
 }) {
   return (
-    <div className="absolute inset-x-0 top-0 z-20 flex gap-1 px-3 pt-3">
+    <div className="flex w-full gap-1">
       {Array.from({ length: count }, (_, i) => (
         <div
           key={i}
@@ -190,7 +198,7 @@ function SlideStage({
 }) {
   return (
     <div
-      className={`absolute inset-0 flex flex-col px-6 pt-16 pb-12 ${SLIDE_BG[slide.kind]}`}
+      className={`absolute inset-0 flex flex-col px-6 pt-20 pb-12 ${SLIDE_BG[slide.kind]}`}
       style={{ animation: 'wrappedEnter 500ms cubic-bezier(0.16, 1, 0.3, 1) both' }}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_55%)]" />
@@ -218,6 +226,30 @@ function SlideStage({
 function SlideContent({ slide }: { slide: WrappedSlide }) {
   switch (slide.kind) {
     case 'hook':
+      return (
+        <div className="my-auto flex flex-col items-center gap-4 text-center">
+          <img
+            src="/piqui.png"
+            alt="Piqui"
+            draggable={false}
+            className="w-44 max-w-[60vw] drop-shadow-[0_6px_20px_rgba(0,0,0,0.25)]"
+            style={{ animation: 'wrappedBig 700ms cubic-bezier(0.16, 1, 0.3, 1) 100ms both' }}
+          />
+          <h2
+            className="text-5xl font-black uppercase leading-[0.85] tracking-tight"
+            style={{ animation: 'wrappedBig 700ms cubic-bezier(0.16, 1, 0.3, 1) 300ms both' }}
+          >
+            Wrapped
+          </h2>
+          <p
+            className="text-base font-medium italic text-white/90"
+            style={{ animation: 'wrappedFadeUp 600ms ease-out 700ms both' }}
+          >
+            {slide.subtitle}
+          </p>
+        </div>
+      );
+
     case 'finale':
       return (
         <div className="my-auto flex flex-col items-center gap-3 text-center">
@@ -225,7 +257,7 @@ function SlideContent({ slide }: { slide: WrappedSlide }) {
             className="text-[11px] font-bold uppercase tracking-[0.35em] text-white/80"
             style={{ animation: 'wrappedFadeUp 600ms ease-out 100ms both' }}
           >
-            {slide.kind === 'hook' ? 'piqui' : 'fin'}
+            fin
           </p>
           <h2
             className="text-4xl font-black leading-[0.95] tracking-tight"
