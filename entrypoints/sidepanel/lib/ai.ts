@@ -33,6 +33,13 @@ export async function generateStructured<T>(
   if (!ai) return { ok: false, error: 'no-key' };
 
   try {
+    console.debug('[piqui ai] request', {
+      model: MODEL,
+      systemPromptLen: systemPrompt.length,
+      userPromptLen: userPrompt.length,
+      userPromptPreview: userPrompt.slice(0, 800),
+    });
+
     const response = await ai.models.generateContent({
       model: MODEL,
       contents: userPrompt,
@@ -45,6 +52,13 @@ export async function generateStructured<T>(
     });
 
     const text = response.text;
+    console.debug('[piqui ai] response', {
+      textLen: text?.length ?? 0,
+      text,
+      promptFeedback: response.promptFeedback,
+      finishReason: response.candidates?.[0]?.finishReason,
+    });
+
     if (!text || text.length === 0) {
       return { ok: false, error: 'empty', message: 'El modelo no devolvió texto.' };
     }
