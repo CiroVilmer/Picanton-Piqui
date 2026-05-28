@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Confetti, Stack, Table } from '@phosphor-icons/react';
+import { Confetti, GameController, Stack, Table } from '@phosphor-icons/react';
 import { isAngryMode } from '../mood';
 import AccordionItem from './AccordionItem';
 import OrganizeTabs from './OrganizeTabs';
 import CaptureCollections from './CaptureCollections';
 import WrappedShowcase from './WrappedShowcase';
+import PreguntadosShowcase from './PreguntadosShowcase';
 
-type FeatureId = 'organize' | 'capture' | 'wrapped';
+type FeatureId = 'organize' | 'capture' | 'wrapped' | 'preguntados';
 
 /**
  * Contenido de la pestaña "Acciones": acordeón de features (apertura única).
@@ -59,6 +60,16 @@ export default function FeaturePanel({
         onToggle={() => toggle('wrapped')}
       >
         <WrappedShowcase />
+      </AccordionItem>
+      <AccordionItem
+        Icon={GameController}
+        title="Preguntados"
+        desc="Trivia del ecosistema"
+        open={open === 'preguntados'}
+        locked={locked}
+        onToggle={() => toggle('preguntados')}
+      >
+        <PreguntadosShowcase />
       </AccordionItem>
     </div>
   );
