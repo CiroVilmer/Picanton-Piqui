@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CATEGORY_META, DOT_CLASS, type Category, type SkimTab } from '../lib/classifier';
 import { SaveGroupButton } from './SaveGroupButton';
+import { UngroupGroupButton } from './UngroupGroupButton';
 
 type Props = {
   category: Category;
@@ -23,7 +24,10 @@ export function GroupedTabsCard({ category, tabs }: Props) {
           <span className="text-sm font-medium text-zinc-100">{meta.label}</span>
           <span className="text-xs text-zinc-500">({tabs.length})</span>
         </div>
-        <SaveGroupButton category={category} tabs={tabs} />
+        <div className="flex items-center gap-1">
+          <UngroupGroupButton category={category} tabIds={tabs.map((t) => t.id)} />
+          <SaveGroupButton category={category} tabs={tabs} />
+        </div>
       </div>
 
       <ul className="mt-2 space-y-1">
