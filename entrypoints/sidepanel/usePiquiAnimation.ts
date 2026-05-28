@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
-  IDLE_CLIP,
+  IDLE_CLIPS,
   TRANSITION_CLIP,
   piquiState,
   type PiquiState,
@@ -8,54 +8,62 @@ import {
 
 export interface PiquiClip {
   src: string;
-  /** true = idle (loopea); false = clip de transición (se reproduce una vez). */
-  loop: boolean;
-  /** estado visual al que pertenece el clip (para el fallback SVG). */
+  /** estado visual al que pertenece el clip (target, si es transición). */
   state: PiquiState;
-  /** true si es un clip de transición → dispara onClipEnded al terminar. */
+  /** true = clip de transición (entra a un estado); false = idle. */
   transition: boolean;
 }
 
 export interface PiquiAnimation {
   clip: PiquiClip;
-  /** Llamar cuando el clip de transición termina de reproducirse. */
+  /** Llamar cuando el clip actual termina de reproducirse (onEnded del video). */
   onClipEnded: () => void;
 }
 
 /**
- * State machine de la animación de Piqui en base a la felicidad actual.
+ * Secuenciador de animación de Piqui. La clave: NUNCA corta un clip a la mitad.
+ * Cada clip (idle o transición) se reproduce entero; recién al terminar (onClipEnded)
+ * se decide el próximo:
  *
- *   idle(actual) ──[mood cruza el umbral]──► transición(destino) ──[ended]──► idle(destino)
+ *   - venías de una transición → asentás el estado destino.
+ *   - si la felicidad ahora pide otro estado → reproducís la transición hacia él.
+ *   - si no → elegís un idle al azar del estado actual (sin repetir el anterior).
  *
- * Si durante una transición el mood vuelve a cruzar, al terminar el clip se re-evalúa
- * el target y se encadena la transición inversa automáticamente.
+ * Mientras un clip corre, los cambios de mood sólo actualizan el "deseo"; se aplican
+ * al terminar el clip en curso. Así el visualizador siempre se ve fluido.
  */
 export function usePiquiAnimation(mood: number): PiquiAnimation {
-  const target = piquiState(mood);
-  const [settled, setSettled] = useState<PiquiState>(target);
-  const [phase, setPhase] = useState<'idle' | 'transition'>('idle');
-  const [transTarget, setTransTarget] = useState<PiquiState>(target);
+  // Estado deseado según la felicidad actual — se lee al cerrar cada clip.
+  const desiredRef = useRef<PiquiState>(piquiState(mood));
+  desiredRef.current = piquiState(mood);
 
-  // Arrancar transición cuando el destino difiere del estado asentado.
-  useEffect(() => {
-    if (phase === 'idle' && target !== settled) {
-      setTransTarget(target);
-      setPhase('transition');
-    }
-  }, [target, settled, phase]);
+  // Estado en el que Piqui está realmente asentado (el de los idles que muestra).
+  const settledRef = useRef<PiquiState>(piquiState(mood));
+  // Último idle reproducido, para no repetirlo seguido.
+  const lastIdleRef = useRef<string>('');
+
+  const pickIdle = useCallback((state: PiquiState): PiquiClip => {
+    const pool = IDLE_CLIPS[state];
+    const options = pool.length > 1 ? pool.filter((s) => s !== lastIdleRef.current) : pool;
+    const src = options[Math.floor(Math.random() * options.length)];
+    lastIdleRef.current = src;
+    return { src, state, transition: false };
+  }, []);
+
+  const [clip, setClip] = useState<PiquiClip>(() => pickIdle(settledRef.current));
 
   const onClipEnded = useCallback(() => {
-    setSettled(transTarget);
-    setPhase('idle');
-  }, [transTarget]);
-
-  const clip = useMemo<PiquiClip>(
-    () =>
-      phase === 'transition'
-        ? { src: TRANSITION_CLIP[transTarget], loop: false, state: transTarget, transition: true }
-        : { src: IDLE_CLIP[settled], loop: true, state: settled, transition: false },
-    [phase, transTarget, settled],
-  );
+    setClip((prev) => {
+      // Si terminó una transición, ya estamos asentados en su estado destino.
+      if (prev.transition) settledRef.current = prev.state;
+      const current = settledRef.current;
+      const want = desiredRef.current;
+      if (want !== current) {
+        return { src: TRANSITION_CLIP[want], state: want, transition: true };
+      }
+      return pickIdle(current);
+    });
+  }, [pickIdle]);
 
   return { clip, onClipEnded };
 }

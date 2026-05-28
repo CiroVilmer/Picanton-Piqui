@@ -13,7 +13,7 @@
   --color-ink: #2c2218;
   --color-ink-muted: #8a7a66;
   --color-outline: #f0ddc4;
-  --color-stage: #fdfbf5; /* fondo del viewport del Stage */
+  --color-stage: #faeedc; /* fondo del viewport del Stage */
 
   /* Mood — firma visual (borde del stage, fills de bars, cara de Piqui) */
   --color-mood-happy: #58c97a;

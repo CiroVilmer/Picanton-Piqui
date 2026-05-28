@@ -42,22 +42,15 @@ function Crossfader({
     setSlots((prev) => {
       const frontClip = prev.front === 'a' ? prev.a : prev.b;
       if (frontClip && frontClip.src === clip.src) {
-        // Mismo src (idle sigue loopeando): actualizamos flags en el lugar, sin reload.
+        // Mismo src: actualizamos los flags en el lugar, sin recargar el video.
         return prev.front === 'a' ? { ...prev, a: clip } : { ...prev, b: clip };
       }
       return prev.front === 'a' ? { ...prev, b: clip } : { ...prev, a: clip };
     });
   }, [clip]);
 
-  // Sin videos disponibles: si quedamos en medio de una transición, avanzamos la
-  // máquina a mano para que el SVG (que sigue al band) se asiente en el destino.
-  useEffect(() => {
-    if (failed && clip.transition) {
-      const t = setTimeout(onEnded, 450);
-      return () => clearTimeout(t);
-    }
-  }, [failed, clip.transition, onEnded]);
-
+  // Sin videos disponibles: el SVG fallback sigue al `band` directamente, así que el
+  // secuenciador puede quedar quieto sin afectar lo que se ve.
   if (failed) {
     return <PiquiCharacter band={band} />;
   }
@@ -80,11 +73,10 @@ function Crossfader({
             autoPlay
             muted
             playsInline
-            loop={c.loop}
             preload="auto"
             onCanPlay={() => handleCanPlay(slot)}
             onError={() => setFailed(true)}
-            onEnded={c.transition && visible ? onEnded : undefined}
+            onEnded={visible ? onEnded : undefined}
             className="absolute inset-0 h-full w-full object-contain"
             style={{
               // disuelve el fondo blanco del mp4 contra el viewport + cropea el borde (manifest §7.2)

@@ -23,8 +23,12 @@ export default function PiquiStage({ band, mood, hunger }: Props) {
     <section
       className={`rounded-card border-[3px] ${BORDER[band]} bg-card p-3 shadow-soft transition-colors duration-[800ms] ease-out`}
     >
-      <div className="relative flex aspect-[9/16] max-h-[280px] items-center justify-center overflow-hidden rounded-2xl bg-stage">
-        <PiquiVideoStage mood={mood} band={band} />
+      <div className="flex h-[280px] w-full items-center justify-center overflow-hidden rounded-2xl bg-stage">
+        {/* caja 9:16 que el video llena exacto: así scale(1.015) + overflow recortan
+            el artifact negro de 1px del borde del mp4 (manifest §7.2) */}
+        <div className="relative flex h-full items-center justify-center overflow-hidden aspect-[9/16]">
+          <PiquiVideoStage mood={mood} band={band} />
+        </div>
       </div>
       <div className="mt-3 flex flex-col gap-2">
         <Stat icon={<MoodGlyph weight="duotone" size={16} />} value={mood} label={MOOD_LABEL[band]} />
